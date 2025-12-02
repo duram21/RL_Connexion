@@ -239,4 +239,9 @@ def train_ppo(
 
 
 if __name__ == "__main__":
-    train_ppo()
+    train_ppo(
+        total_timesteps=10_000,   # 일단 작게
+        rollout_steps=256,
+        minibatch_size=64,
+        ppo_epochs=4,
+    )
