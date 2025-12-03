@@ -198,7 +198,7 @@ def sample_valid_action(raw_prob: torch.Tensor, valid_mask: np.ndarray) -> Tuple
 # ───────────────────────── 학습 루프 ─────────────────────────
 
 def train_ppo(num_episodes: int = 1000) -> PPO:
-    env = ConnexionEnv(seed=0, opponent="nypc")
+    env = ConnexionEnv(seed=0, opponent="sample")
     obs, info = env.reset()
 
     obs_dim = env.obs_dim
@@ -206,7 +206,7 @@ def train_ppo(num_episodes: int = 1000) -> PPO:
     print(f"obs_dim: {obs_dim} act_dim: {act_dim}")
 
     model = PPO(obs_dim, act_dim)
-
+    env = ConnexionEnv(seed=123, opponent="sample")
     print_interval = 50
     score_window = []
 
@@ -266,7 +266,7 @@ def train_ppo(num_episodes: int = 1000) -> PPO:
 # ───────────────────────── 테스트 ─────────────────────────
 
 def test_run(model: PPO, num_episodes: int = 200):
-    env = ConnexionEnv(seed=123, opponent="nypc")
+    env = ConnexionEnv(seed=123, opponent="sample")
     wins = 0
     draws = 0
     losses = 0
@@ -305,7 +305,7 @@ def test_run(model: PPO, num_episodes: int = 200):
 
 
 if __name__ == "__main__":
-    model = train_ppo(num_episodes=1000)
+    model = train_ppo(num_episodes=10000)
 
     print("\n=== Test run with trained policy ===")
     test_run(model, num_episodes=200)
