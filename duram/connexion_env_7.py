@@ -1,0 +1,325 @@
+import numpy as np
+from dataclasses import dataclass
+from enum import Enum
+from typing import List, Tuple, Optional, Dict, Any
+
+class Column(Enum):
+    A = "a"; B = "b"; C = "c"; D = "d"; E = "e"; F = "f"
+class Row(Enum):
+    _1 = "1"; _2 = "2"; _3 = "3"; _4 = "4"; _5 = "5"; _6 = "6"
+class Sign(Enum):
+    MINUS = "-"; PLUS = "+"
+class Color(Enum):
+    R = "R"; G = "G"; B = "B"; Y = "Y"
+class Symbol(Enum):
+    _1 = "1"; _2 = "2"; _3 = "3"; _4 = "4"
+
+FORBIDDEN_STR = {"a1-", "a4-", "c3+", "c6+", "d1-", "d4-", "f3+", "f6+"}
+
+@dataclass(frozen=True)
+class Cell:
+    col: Column; row: Row; sign: Sign
+    def __str__(self) -> str: return f"{self.col.value}{self.row.value}{self.sign.value}"
+    def isValid(self) -> bool: return str(self) not in FORBIDDEN_STR
+    def isAdjacent(self, other: "Cell") -> bool:
+        dr = ord(other.row.value) - ord(self.row.value)
+        dc = ord(other.col.value) - ord(self.col.value)
+        if self.sign == Sign.MINUS and other.sign == Sign.PLUS:
+            return (dr == dc == 0 or (dr == 0 and dc == -1) or (dr == -1 and dc == 0))
+        if self.sign == Sign.PLUS and other.sign == Sign.MINUS:
+            return (dr == dc == 0 or (dr == 0 and dc == 1) or (dr == 1 and dc == 0))
+        return False
+
+@dataclass(frozen=True)
+class Tile:
+    color: Color; symbol: Symbol
+    def __str__(self) -> str: return f"{self.color.value}{self.symbol.value}"
+
+ALL_CELLS: List[Cell] = []
+for col in Column:
+    for row in Row:
+        for sign in Sign:
+            c = Cell(col, row, sign)
+            if c.isValid(): ALL_CELLS.append(c)
+
+NUM_CELLS: int = len(ALL_CELLS)
+CELL_INDEX: Dict[str, int] = {str(c): i for i, c in enumerate(ALL_CELLS)}
+ADJ: List[List[int]] = [[] for _ in range(NUM_CELLS)]
+for i, ci in enumerate(ALL_CELLS):
+    for j, cj in enumerate(ALL_CELLS):
+        if i != j and ci.isAdjacent(cj):
+            ADJ[i].append(j)
+
+COLOR_LIST = [Color.R, Color.G, Color.B, Color.Y]
+SYMBOL_LIST = [Symbol._1, Symbol._2, Symbol._3, Symbol._4]
+COLOR_TO_IDX = {c: i for i, c in enumerate(COLOR_LIST)}
+SYMBOL_TO_IDX = {s: i for i, s in enumerate(SYMBOL_LIST)}
+
+def tile_to_id(t: Tile) -> int: return COLOR_TO_IDX[t.color] * 4 + SYMBOL_TO_IDX[t.symbol]
+def id_to_tile(tid: int) -> Tile: return Tile(COLOR_LIST[tid // 4], SYMBOL_LIST[tid % 4])
+
+class ConnexionEnv:
+    def __init__(self, seed: int = 0):
+        self.rng = np.random.RandomState(seed)
+        self.num_cells = NUM_CELLS
+        self.action_size = self.num_cells * 5
+        self.obs_dim = self.num_cells * 16 + 5 * 16 + 5 * 16
+        self.reward_scale = 40.0 
+        self.win_bonus = 1.0
+        self.greedy_prob = 0.0 
+        self.reset()
+
+    def set_greedy_prob(self, prob: float):
+        self.greedy_prob = np.clip(prob, 0.0, 1.0)
+
+    def reset(self, seed: Optional[int] = None):
+        if seed is not None: self.rng.seed(seed)
+        full_deck_tiles = [Tile(c, s) for c in COLOR_LIST for s in SYMBOL_LIST for _ in range(4)]
+        self.rng.shuffle(full_deck_tiles)
+        full_deck = [tile_to_id(t) for t in full_deck_tiles]
+        self.agent_deck = full_deck[:27]
+        self.opp_deck = full_deck[27:54]
+        self.agent_hand = full_deck[54:59]
+        self.opp_hand = full_deck[59:64]
+        self.board = [-1] * self.num_cells
+        self.filled = 0
+        self.done = False
+        self.prev_diff = 0.0
+        return self._get_obs(), {}
+
+    def _get_obs(self, is_opponent=False) -> np.ndarray:
+        my_target_hand = self.opp_hand if is_opponent else self.agent_hand
+        opp_target_hand = self.agent_hand if is_opponent else self.opp_hand
+        
+        board_feat = np.zeros((self.num_cells, 16), dtype=np.float32)
+        for idx, tid in enumerate(self.board):
+            if tid != -1: board_feat[idx, tid] = 1.0
+        
+        my_hand_feat = np.zeros((5, 16), dtype=np.float32)
+        for slot, tid in enumerate(my_target_hand):
+             if slot < len(my_target_hand): my_hand_feat[slot, tid] = 1.0
+
+        opp_hand_feat = np.zeros((5, 16), dtype=np.float32)
+        for slot, tid in enumerate(opp_target_hand):
+             if slot < len(opp_target_hand): opp_hand_feat[slot, tid] = 1.0
+        
+        return np.concatenate([board_feat.flatten(), my_hand_feat.flatten(), opp_hand_feat.flatten()])
+
+    # 1. 기본 룰상 가능한 모든 수 (Basic Mask)
+    def get_valid_action_mask(self, is_opponent=False) -> np.ndarray:
+        target_hand = self.opp_hand if is_opponent else self.agent_hand
+        mask = np.zeros(self.action_size, dtype=bool)
+        if self.done: return mask
+        
+        # 손패가 있는 슬롯 x 빈 칸
+        for slot in range(len(target_hand)):
+            for ci in range(self.num_cells):
+                if self.board[ci] == -1:
+                    mask[slot * self.num_cells + ci] = True
+        return mask
+    
+    # 2. 점수가 잘 나오는 똑똑한 수 (Smart Mask)
+    def get_smart_action_mask(self) -> np.ndarray:
+        # 우선 기본적으로 둘 수 있는 곳을 파악
+        valid_mask = self.get_valid_action_mask()
+        if valid_mask.sum() == 0:
+            return valid_mask # 둘 곳이 없으면 빈 마스크 반환 (종료됨)
+
+        # 스마트 필터링 시도
+        mask = np.zeros(self.action_size, dtype=bool)
+        scores, indices = [], []
+        
+        for slot, tid in enumerate(self.agent_hand):
+            for ci in range(self.num_cells):
+                if self.board[ci] == -1:
+                    idx = slot * self.num_cells + ci
+                    s = self._local_score(ci, tid, is_first=True)
+                    scores.append(s); indices.append(idx)
+        
+        # 🔥 [핵심 수정] 스마트한 수가 하나도 없으면? -> 기본 마스크 사용 (Fallback)
+        # (예: 모든 수가 0점이라 필터링 걸리거나, 계산 오류 등)
+        if not scores: 
+            return valid_mask
+
+        max_s = max(scores)
+        threshold = max_s * 0.7 if max_s > 0 else -1.0
+        
+        count_smart = 0
+        for s, idx in zip(scores, indices):
+            if s >= threshold: 
+                mask[idx] = True
+                count_smart += 1
+        
+        # 🔥 [핵심 수정] 필터링했더니 남는 게 하나도 없으면? -> 기본 마스크 사용
+        if count_smart == 0:
+            return valid_mask
+            
+        return mask
+
+    def step(self, action: int, opp_model=None, device=None):
+        if self.done: raise RuntimeError("Episode done")
+        
+        tile_slot = action // self.num_cells
+        cell_idx = action % self.num_cells
+
+        # 이젠 Logic이 완벽하므로 여기서 에러가 나면 안 됨
+        # 하지만 혹시 모르니 에러 대신 done 처리를 하거나 무효 처리
+        if tile_slot >= len(self.agent_hand) or self.board[cell_idx] != -1:
+             # 마스킹이 뚫렸다는 건 심각한 버그지만, 학습을 멈추지 않기 위해 -10점 주고 끝냄
+             return self._get_obs(), -10.0, True, False, {"invalid": True}
+
+        self._apply_move(is_agent=True, slot=tile_slot, cell_idx=cell_idx)
+        if self.filled >= self.num_cells: return self._finalize_step()
+
+        if opp_model is not None:
+            self._opponent_model_move(opp_model, device)
+        else:
+            self._opponent_move()
+            
+        if self.filled >= self.num_cells: return self._finalize_step()
+        return self._finalize_step(done_override=False)
+
+    def _finalize_step(self, done_override=None):
+        first_s, second_s, curr_diff = self._compute_scores()
+        delta = curr_diff - self.prev_diff
+        self.prev_diff = curr_diff
+        step_reward = np.clip(delta / self.reward_scale, -2.0, 2.0)
+        is_done = (self.filled >= self.num_cells) if done_override is None else done_override
+        self.done = is_done
+        info = {"diff": curr_diff, "first": first_s, "second": second_s}
+        if is_done:
+            if curr_diff > 0: step_reward += self.win_bonus
+            elif curr_diff < 0: step_reward -= self.win_bonus
+        return self._get_obs(), step_reward, is_done, False, info
+
+    def _apply_move(self, is_agent: bool, slot: int, cell_idx: int):
+        hand = self.agent_hand if is_agent else self.opp_hand
+        deck = self.agent_deck if is_agent else self.opp_deck
+        
+        # 인덱스 에러 방지 (Logic 상 여기 도달하면 안 되지만, 최후의 보루)
+        if slot >= len(hand):
+            return # 아무것도 안 함
+
+        self.board[cell_idx] = hand.pop(slot)
+        self.filled += 1
+        if deck: hand.append(deck.pop())
+
+    def _opponent_model_move(self, model, device):
+        import torch
+        obs = self._get_obs(is_opponent=True)
+        mask = self.get_valid_action_mask(is_opponent=True)
+        obs_t = torch.tensor(obs, dtype=torch.float32).unsqueeze(0).to(device)
+        mask_t = torch.tensor(mask, dtype=torch.bool).unsqueeze(0).to(device)
+        
+        with torch.no_grad():
+            x, h = model.forward_shared(obs_t)
+            b = x.size(0)
+            pol = torch.nn.functional.relu(model.actor_bn(model.actor_conv(x))).view(b, -1)
+            pol = torch.cat([pol, h], dim=1)
+            logits = model.actor_fc(pol)
+            logits = logits.masked_fill(~mask_t, -1e9)
+            ppo_idx = torch.argmax(logits, dim=1).item()
+
+        greedy_idx = -1; best_val = -9999
+        ppo_val = self._simulate_opp_score(ppo_idx)
+        
+        for slot in range(len(self.opp_hand)):
+            for c_idx in range(self.num_cells):
+                if self.board[c_idx] == -1:
+                    idx = slot * self.num_cells + c_idx
+                    val = self._simulate_opp_score(idx)
+                    if val > best_val: best_val = val; greedy_idx = idx
+        
+        if greedy_idx != -1 and best_val > ppo_val + 5.0: final_action = greedy_idx
+        else: final_action = ppo_idx
+            
+        slot = final_action // self.num_cells
+        c_idx = final_action % self.num_cells
+        
+        # 모델도 실수할 수 있으니 체크
+        if slot < len(self.opp_hand) and self.board[c_idx] == -1:
+            self._apply_move(is_agent=False, slot=slot, cell_idx=c_idx)
+        else:
+            self._opponent_random() # 실수하면 랜덤으로
+
+    def _simulate_opp_score(self, action_idx):
+        slot = action_idx // self.num_cells
+        c_idx = action_idx % self.num_cells
+        
+        if slot >= len(self.opp_hand) or self.board[c_idx] != -1:
+            return -9999
+            
+        bak_hand = list(self.opp_hand)
+        tid = self.opp_hand.pop(slot)
+        self.board[c_idx] = tid
+        s1, s2, diff = self._compute_scores()
+        my_gain = s2 - s1 
+        self.board[c_idx] = -1
+        self.opp_hand = bak_hand
+        return my_gain
+
+    def _opponent_move(self):
+        if self.rng.rand() < self.greedy_prob: self._opponent_sample_greedy()
+        else: self._opponent_random()
+
+    def _opponent_random(self):
+        valid = []
+        for s in range(len(self.opp_hand)):
+            for c in range(self.num_cells):
+                if self.board[c] == -1: valid.append((s, c))
+        if valid:
+            s, c = valid[self.rng.randint(len(valid))]
+            self._apply_move(False, s, c)
+
+    def _opponent_sample_greedy(self):
+        best_val = -9999; best_moves = []
+        for s, tid in enumerate(self.opp_hand):
+            for c in range(self.num_cells):
+                if self.board[c] == -1:
+                    atk = self._local_score(c, tid, is_first=False)
+                    defense = 0
+                    for p_tid in self.agent_hand:
+                        defense = max(defense, self._local_score(c, p_tid, is_first=True))
+                    val = atk + (defense * 1.0)
+                    if val > best_val: best_val = val; best_moves = [(s, c)]
+                    elif val == best_val: best_moves.append((s, c))
+        if best_moves:
+            s, c = best_moves[self.rng.randint(len(best_moves))]
+            self._apply_move(False, s, c)
+
+    def _local_score(self, cell_idx, tid, is_first):
+        score = 1
+        c_idx, s_idx = tid // 4, tid % 4
+        for nb in ADJ[cell_idx]:
+            nb_tid = self.board[nb]
+            if nb_tid == -1: continue
+            match = (nb_tid % 4 == s_idx) if is_first else (nb_tid // 4 == c_idx)
+            if match: score += 1
+        return score * score
+
+    def _compute_scores(self):
+        return (self._calc_uf(True), self._calc_uf(False), self._calc_uf(True) - self._calc_uf(False))
+
+    def _calc_uf(self, use_symbol: bool):
+        parent = list(range(self.num_cells)); size = [0] * self.num_cells
+        for i, tid in enumerate(self.board):
+            if tid != -1: size[i] = 1
+        def find(x):
+            if parent[x] != x: parent[x] = find(parent[x])
+            return parent[x]
+        def union(a, b):
+            ra, rb = find(a), find(b)
+            if ra != rb: parent[rb] = ra; size[ra] += size[rb]
+        for i in range(self.num_cells):
+            tid = self.board[i]
+            if tid == -1: continue
+            for nb in ADJ[i]:
+                if nb > i: continue
+                ntid = self.board[nb]
+                if ntid == -1: continue
+                match = (tid % 4 == ntid % 4) if use_symbol else (tid // 4 == ntid // 4)
+                if match: union(i, nb)
+        score = 0
+        for i in range(self.num_cells):
+            if parent[i] == i and size[i] > 0: score += size[i] ** 2
+        return score

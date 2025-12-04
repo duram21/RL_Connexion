@@ -1,0 +1,6 @@
+[FIRST "COMMAND: \"C:/Users/SOGANG/AppData/Local/Microsoft/WindowsApps/PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0/python.exe\" \"C:/Users/SOGANG/Desktop/RL/RL_Connexion/duram/testing-tool-connexion-1.0.0/player_ppo.py\""]
+[SECOND "COMMAND: \"C:/Users/SOGANG/AppData/Local/Microsoft/WindowsApps/PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0/python.exe\" \"C:/Users/SOGANG/Desktop/RL/RL_Connexion/duram/testing-tool-connexion-1.0.0/player_random.py\""]
+[RESULT "0-1"]
+# Debug FIRST: C:/Users/SOGANG/AppData/Local/Microsoft/WindowsApps/PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0/python.exe: can't open file 'C:\\Users\\SOGANG\\Desktop\\RL\\RL_Connexion\\duram\\testing-tool-connexion-1.0.0\\player_ppo.py': [Errno 2] No such file or directory
+# Debug SECOND: C:/Users/SOGANG/AppData/Local/Microsoft/WindowsApps/PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0/python.exe: can't open file 'C:\\Users\\SOGANG\\Desktop\\RL\\RL_Connexion\\duram\\testing-tool-connexion-1.0.0\\player_random.py': [Errno 2] No such file or directory
+ABORT FIRST TLE

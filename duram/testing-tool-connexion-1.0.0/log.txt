@@ -1,0 +1,54 @@
+[FIRST "COMMAND: python player_ppo.py P1"]
+[SECOND "COMMAND: python sample-code.py P2"]
+[RESULT "*"]
+INIT R4 G2 G3 Y1 B4 R2 B2 Y4 R4 R4
+# Debug FIRST: C:\Users\SOGANG\Desktop\RL\RL_Connexion\duram\testing-tool-connexion-1.0.0\sample\player_ppo.py:115: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+# Debug FIRST:   model.load_state_dict(torch.load("best_model.pt", map_location=device))
+FIRST a4+ B4 R3 1755
+SECOND a5- B2 B1 2
+FIRST b4- R4 R3 1
+SECOND a5+ B1 G2 6
+FIRST b5- Y1 G1 1
+SECOND b3+ R2 G4 12
+FIRST a6- G1 G4 1
+SECOND b3- R4 B4 20
+FIRST c3- G2 G1 2
+SECOND a3+ R4 G4 30
+FIRST a3- G4 G4 2
+SECOND b4+ Y4 Y4 42
+FIRST a6+ G1 Y2 2
+SECOND b6- G2 Y1 54
+# Debug FIRST: Traceback (most recent call last):
+# Debug FIRST:   File "C:\Users\SOGANG\Desktop\RL\RL_Connexion\duram\testing-tool-connexion-1.0.0\sample\player_ppo.py", line 210, in <module>
+# Debug FIRST:     main()
+# Debug FIRST:   File "C:\Users\SOGANG\Desktop\RL\RL_Connexion\duram\testing-tool-connexion-1.0.0\sample\player_ppo.py", line 174, in main
+# Debug FIRST:     action = model.get_action(obs_t, mask_t).item()
+# Debug FIRST:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Debug FIRST:   File "C:\Users\SOGANG\Desktop\RL\RL_Connexion\duram\testing-tool-connexion-1.0.0\sample\player_ppo.py", line 103, in get_action
+# Debug FIRST:     feat = self.forward(obs)
+# Debug FIRST:            ^^^^^^^^^^^^^^^^^
+# Debug FIRST:   File "C:\Users\SOGANG\Desktop\RL\RL_Connexion\duram\testing-tool-connexion-1.0.0\sample\player_ppo.py", line 95, in forward
+# Debug FIRST:     x = F.relu(self.conv2(x))
+# Debug FIRST:                ^^^^^^^^^^^^^
+# Debug FIRST:   File "C:\Users\SOGANG\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\torch\nn\modules\module.py", line 1736, in _wrapped_call_impl
+# Debug FIRST:     return self._call_impl(*args, **kwargs)
+# Debug FIRST:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Debug FIRST:   File "C:\Users\SOGANG\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\torch\nn\modules\module.py", line 1747, in _call_impl
+# Debug FIRST:     return forward_call(*args, **kwargs)
+# Debug FIRST:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Debug FIRST:   File "C:\Users\SOGANG\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\torch\nn\modules\conv.py", line 554, in forward
+# Debug FIRST:     return self._conv_forward(input, self.weight, self.bias)
+# Debug FIRST:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Debug FIRST:   File "C:\Users\SOGANG\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\torch\nn\modules\conv.py", line 549, in _conv_forward
+# Debug FIRST:     return F.conv2d(
+# Debug FIRST:            ^^^^^^^^^
+# Debug FIRST: KeyboardInterrupt
+# Debug FIRST: ^C
+# Debug SECOND: Traceback (most recent call last):
+# Debug SECOND:   File "C:\Users\SOGANG\Desktop\RL\RL_Connexion\duram\testing-tool-connexion-1.0.0\sample\sample-code.py", line 344, in <module>
+# Debug SECOND:     main()
+# Debug SECOND:   File "C:\Users\SOGANG\Desktop\RL\RL_Connexion\duram\testing-tool-connexion-1.0.0\sample\sample-code.py", line 280, in main
+# Debug SECOND:     line = input().strip()
+# Debug SECOND:            ^^^^^^^
+# Debug SECOND: KeyboardInterrupt
+# Debug SECOND: ^C

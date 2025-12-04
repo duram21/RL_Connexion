@@ -1,0 +1,73 @@
+[FIRST "COMMAND: python player_ppo_6.py P1"]
+[SECOND "COMMAND: python strong.py P2"]
+[RESULT "0-1"]
+INIT R4 R2 R3 B3 Y3 R1 R3 Y4 B4 B3
+# Debug FIRST: C:\Users\SOGANG\Desktop\RL\RL_Connexion\duram\testing-tool-connexion-1.0.0\sample\player_ppo_6.py:269: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+# Debug FIRST:   try: model.load_state_dict(torch.load(model_path, map_location=device))
+FIRST e2- R2 R4 3421
+SECOND d2+ R1 R2 240
+FIRST c4- B3 R3 49
+SECOND d3- R3 R3 216
+FIRST c4+ R3 Y4 49
+SECOND d3+ R2 G2 208
+FIRST c5- R3 B4 49
+SECOND e3- R3 G1 211
+FIRST b4+ Y3 G1 48
+SECOND c2+ G2 Y4 197
+FIRST d2- G1 R2 45
+SECOND c3- G1 R1 197
+FIRST e2+ Y4 Y2 44
+SECOND e3+ R1 R4 179
+FIRST e1+ Y2 G3 52
+SECOND e4- R4 B4 152
+FIRST b4- G3 Y4 28
+SECOND b5- Y4 G1 132
+FIRST b3+ R4 Y3 26
+SECOND c2- G1 B2 107
+FIRST a4+ Y3 G1 25
+SECOND d5- B2 B3 112
+FIRST e1- R2 B3 28
+SECOND e5- B3 G3 124
+FIRST a5- B3 B1 62
+SECOND b2+ G3 G2 121
+FIRST d5+ R4 R1 22
+SECOND b3- G2 G4 112
+FIRST d1+ B1 G4 21
+SECOND b2- G4 Y1 105
+FIRST a5+ B4 G3 20
+SECOND b5+ Y1 Y3 116
+FIRST c5+ G3 B1 20
+SECOND b6- Y4 B1 93
+FIRST f2- G4 G2 18
+SECOND a6+ Y3 Y1 94
+FIRST f1- G2 Y1 17
+SECOND b6+ Y1 G4 81
+FIRST f1+ Y4 B2 16
+SECOND a3+ G4 B2 79
+FIRST c6- B1 R1 15
+SECOND a6- B1 Y3 79
+FIRST c1+ R1 Y2 16
+SECOND e4+ B2 Y2 65
+FIRST f4- Y2 G2 29
+SECOND e5+ B4 R2 59
+FIRST f4+ G2 Y1 12
+SECOND f3- R2 G3 55
+FIRST f2+ B2 B4 24
+SECOND a2+ G3 R4 47
+FIRST c1- G1 B2 10
+SECOND d4+ R4 B1 63
+FIRST b1+ R1 G4 9
+SECOND e6- B3 Y2 44
+FIRST b1- Y1 X0 8
+SECOND d6+ B1 X0 39
+FIRST a1+ Y1 X0 6
+SECOND e6+ B4 X0 18
+FIRST a2- B4 X0 5
+SECOND f5- Y3 X0 2
+FIRST f5+ B2 X0 4
+SECOND d6- Y2 X0 0
+FIRST f6- G4 X0 3
+SECOND a3- Y2 X0 0
+FINISH
+SCOREFIRST 190
+SCORESECOND 278
